@@ -33,7 +33,7 @@ if st.session_state.pantalla == "bienvenida":
 
 # 3. PANTALLA PRINCIPAL
 else:
-    st.title("📊 Mi Dashboard Financiero")
+    st.title("📊 Mi Gestor Financiero")
     
     with st.sidebar:
         st.header("➕ Nueva Transacción")
