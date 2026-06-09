@@ -33,7 +33,7 @@ if st.session_state.pantalla == "bienvenida":
 
 # 3. PANTALLA PRINCIPAL
 else:
-    st.title("📊 Mi Gestor Financiero")
+    st.title("📊 Mi Dashboard Financiero")
     
     with st.sidebar:
         st.header("➕ Nueva Transacción")
@@ -44,10 +44,9 @@ else:
         
         if st.button("Guardar", use_container_width=True):
             if desc and amt > 0:
-                # Guardamos la fecha como texto plano para evitar errores de compatibilidad
                 new_t = pd.DataFrame([{'Fecha': str(date_t), 'Descripción': desc, 'Tipo': type_t, 'Monto': amt}])
                 st.session_state.transactions = pd.concat([st.session_state.transactions, new_t], ignore_index=True)
-                st.session_state.transactions.to_csv(FILE_NAME, index=False) # Guarda en el archivo
+                st.session_state.transactions.to_csv(FILE_NAME, index=False)
                 st.success("¡Guardado!")
                 st.rerun()
             else:
@@ -57,13 +56,13 @@ else:
             st.session_state.pantalla = "bienvenida"
             st.rerun()
 
-    # Cálculos matemáticos de las métricas
+    # Operaciones Matemáticas
     df = st.session_state.transactions
     ingresos = df[df['Tipo'] == 'Ingreso']['Monto'].sum()
     gastos = df[df['Tipo'] == 'Gasto']['Monto'].sum()
     balance = ingresos - gastos
 
-    tab1, tab2 = st.tabs(["📈 Resumen y Gráficos", "📋 Historial e Interacción"])
+    tab1, tab2 = st.tabs(["📈 Resumen y Gráficos", "📋 Historial y Opciones"])
 
     with tab1:
         c1, c2, c3 = st.columns(3)
@@ -84,17 +83,27 @@ else:
 
     with tab2:
         st.subheader("Registro Histórico")
-        st.caption("💡 Para BORRAR: Haz clic en el cuadro al lado izquierdo de la fila y presiona la tecla 'Suprimir' (Delete) en tu teclado. Luego dale al botón Guardar Cambios.")
         
-        # El truco: data_editor permite modificar la tabla directamente en pantalla
-        edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-        
-        # Si el usuario borró o editó algo, guardamos los cambios al presionar este botón
-        if st.button("💾 Guardar Cambios en el Historial", type="primary"):
-            st.session_state.transactions = edited_df
-            st.session_state.transactions.to_csv(FILE_NAME, index=False)
-            st.success("¡Historial actualizado correctamente!")
-            st.rerun()
+        if not df.empty:
+            # Mostramos la tabla normal (añadiendo el índice visual para que el usuario sepa qué número es cada fila)
+            st.dataframe(df, use_container_width=True)
+            
+            st.markdown("---")
+            st.subheader("🗑️ Eliminar una Transacción")
+            
+            # Creamos una lista de opciones legibles para el menú desplegable (Ej: "0 - Salario ($3000)")
+            opciones = [f"{idx} - {row['Descripción']} (${row['Monto']})" for idx, row in df.iterrows()]
+            seleccion = st.selectbox("Selecciona la transacción que deseas eliminar:", opciones)
+            
+            # Al hacer clic en el botón, extraemos el número (ID) de la opción y lo borramos
+            if st.button("❌ Eliminar Transacción Seleccionada", type="primary"):
+                fila_id = int(seleccion.split(" - ")[0]) # Obtiene el número de fila
+                st.session_state.transactions = df.drop(fila_id).reset_index(drop=True) # Lo borra y reordena
+                st.session_state.transactions.to_csv(FILE_NAME, index=False) # Guarda en el archivo
+                st.success("¡Transacción eliminada!")
+                st.rerun()
+        else:
+            st.info("El historial está vacío.")
             
         if st.button("Resetear Todo"):
             if os.path.exists(FILE_NAME):
