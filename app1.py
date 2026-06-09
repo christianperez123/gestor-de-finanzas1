@@ -83,7 +83,7 @@ else:
                 st.line_chart(df.groupby(['Fecha', 'Tipo'])['Monto'].sum().unstack(fill_value=0))
 
     with tab2:
-        st.subheader("Registro Histórico (Editable)")
+        st.subheader("Registro Histórico")
         st.caption("💡 Para BORRAR: Haz clic en el cuadro al lado izquierdo de la fila y presiona la tecla 'Suprimir' (Delete) en tu teclado. Luego dale al botón Guardar Cambios.")
         
         # El truco: data_editor permite modificar la tabla directamente en pantalla
