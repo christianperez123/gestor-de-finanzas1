@@ -3,49 +3,38 @@ import pandas as pd
 import datetime
 import os
 
-# 1. Configuración de la página y Guardado de Datos (Local Storage simulado)
+# 1. Configuración de la página y Archivo de Datos
 st.set_page_config(page_title="Gestor Finanzas", layout="wide", page_icon="💰")
 FILE_NAME = "mis_finanzas.csv"
 
-# Carga datos guardados previamente; si no existen, crea el historial inicial
 if 'transactions' not in st.session_state:
     if os.path.exists(FILE_NAME):
-        st.session_state.transactions = pd.read_csv(FILE_NAME, parse_dates=['Fecha'])
+        st.session_state.transactions = pd.read_csv(FILE_NAME)
     else:
         initial_data = {
-            'Fecha': [datetime.date(2026, 1, 1), datetime.date(2026, 1, 5)], 
+            'Fecha': ['2026-01-01', '2026-01-05'], 
             'Descripción': ['Mesada/Salario', 'Suscripciones'], 'Tipo': ['Ingreso', 'Gasto'], 'Monto': [3000.0, 1000.0]
         }
         st.session_state.transactions = pd.DataFrame(initial_data)
 
-# Control de navegación para la pantalla de bienvenida
 if 'pantalla' not in st.session_state:
     st.session_state.pantalla = "bienvenida"
 
-# 2. PANTALLA DE BIENVENIDA (Mensaje convincente)
+# 2. PANTALLA DE BIENVENIDA
 if st.session_state.pantalla == "bienvenida":
     st.title("🚀 Toma el Control de tu Futuro Financiero")
-    
     st.markdown("""
-    **¿Llegas a fin de mes preguntándote a dónde se fue tu dinero?**  
-    Para un estudiante o joven profesional, la falta de orden financiero es el enemigo silencioso que sabotea tus metas, 
-    acumula estrés y limita tu libertad. 
-    
-    Este **Gestor de Finanzas Personal** no es una planilla aburrida; es tu centro de comandos. Diseñado para ser 
-    ultrarrápido, visual e interactivo, te ayudará a transformar el caos en claridad matemática. Deja de adivinar 
-    y empieza a construir tu estabilidad desde hoy.
+    **¿Llegas a fin de mes preguntándote a dónde se fue tu dinero?** Para un estudiante, la falta de orden financiero es el enemigo silencioso que sabotea metas y acumula estrés. 
+    Este **Gestor de Finanzas** interactivo transformará tu caos en claridad matemática. ¡Empieza hoy!
     """)
-    
-    # Botón grande para avanzar a la aplicación
     if st.button("🚀 Entrar al Gestor Financiero", use_container_width=True):
         st.session_state.pantalla = "dashboard"
         st.rerun()
 
-# 3. PANTALLA PRINCIPAL DE LA APLICACIÓN
+# 3. PANTALLA PRINCIPAL
 else:
     st.title("📊 Mi Dashboard Financiero")
     
-    # Barra Lateral para añadir datos
     with st.sidebar:
         st.header("➕ Nueva Transacción")
         desc = st.text_input("Descripción", placeholder="Ej. Almuerzo")
@@ -55,32 +44,28 @@ else:
         
         if st.button("Guardar", use_container_width=True):
             if desc and amt > 0:
-                new_t = pd.DataFrame([{'Fecha': date_t, 'Descripción': desc, 'Tipo': type_t, 'Monto': amt}])
+                # Guardamos la fecha como texto plano para evitar errores de compatibilidad
+                new_t = pd.DataFrame([{'Fecha': str(date_t), 'Descripción': desc, 'Tipo': type_t, 'Monto': amt}])
                 st.session_state.transactions = pd.concat([st.session_state.transactions, new_t], ignore_index=True)
-                
-                # FUNCIÓN CLAVE: Guarda los progresos automáticamente en el archivo físico .csv
-                st.session_state.transactions.to_csv(FILE_NAME, index=False)
+                st.session_state.transactions.to_csv(FILE_NAME, index=False) # Guarda en el archivo
                 st.success("¡Guardado!")
                 st.rerun()
             else:
-                st.warning("Completa los campos correctamente.")
+                st.warning("Completa los campos.")
         
-        # Botón para regresar a la bienvenida si el usuario quiere leer el mensaje de nuevo
         if st.button("⬅️ Ver Bienvenida", use_container_width=True):
             st.session_state.pantalla = "bienvenida"
             st.rerun()
 
-    # Operaciones de Datos
+    # Cálculos matemáticos de las métricas
     df = st.session_state.transactions
     ingresos = df[df['Tipo'] == 'Ingreso']['Monto'].sum()
     gastos = df[df['Tipo'] == 'Gasto']['Monto'].sum()
     balance = ingresos - gastos
 
-    # Pestañas visuales
-    tab1, tab2 = st.tabs(["📈 Resumen y Gráficos", "📋 Historial"])
+    tab1, tab2 = st.tabs(["📈 Resumen y Gráficos", "📋 Historial e Interacción"])
 
     with tab1:
-        # Métricas principales
         c1, c2, c3 = st.columns(3)
         c1.metric("Balance Disponible", f"${balance:,.2f}", delta=f"${balance:,.2f}")
         c2.metric("Total Ingresos", f"${ingresos:,.2f}")
@@ -88,21 +73,31 @@ else:
         
         st.markdown("---")
         
-        # Gráficos paralelos sencillos
         cg1, cg2 = st.columns(2)
         with cg1:
             st.subheader("Ingresos vs Gastos")
             st.bar_chart(pd.DataFrame({'Monto': [ingresos, gastos]}, index=['Ingresos', 'Gastos']))
         with cg2:
             st.subheader("Flujo en el Tiempo")
-            st.line_chart(df.groupby(['Fecha', 'Tipo'])['Monto'].sum().unstack(fill_value=0))
+            if not df.empty:
+                st.line_chart(df.groupby(['Fecha', 'Tipo'])['Monto'].sum().unstack(fill_value=0))
 
     with tab2:
-        st.subheader("Registro Histórico")
-        st.dataframe(df.sort_values(by='Fecha', ascending=False), use_container_width=True, hide_index=True)
+        st.subheader("Registro Histórico (Editable)")
+        st.caption("💡 Para BORRAR: Haz clic en el cuadro al lado izquierdo de la fila y presiona la tecla 'Suprimir' (Delete) en tu teclado. Luego dale al botón Guardar Cambios.")
         
-        if st.button("Resetear Base de Datos"):
+        # El truco: data_editor permite modificar la tabla directamente en pantalla
+        edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
+        
+        # Si el usuario borró o editó algo, guardamos los cambios al presionar este botón
+        if st.button("💾 Guardar Cambios en el Historial", type="primary"):
+            st.session_state.transactions = edited_df
+            st.session_state.transactions.to_csv(FILE_NAME, index=False)
+            st.success("¡Historial actualizado correctamente!")
+            st.rerun()
+            
+        if st.button("Resetear Todo"):
             if os.path.exists(FILE_NAME):
-                os.remove(FILE_NAME) # Borra el archivo guardado
+                os.remove(FILE_NAME)
             st.session_state.transactions = pd.DataFrame(columns=['Fecha', 'Descripción', 'Tipo', 'Monto'])
             st.rerun()
